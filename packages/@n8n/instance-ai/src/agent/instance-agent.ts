@@ -5,6 +5,7 @@ import {
 	Memory,
 } from '@n8n/agents';
 
+import { resolveAIAPromptCaching } from './aia-model-defaults';
 import { applyAgentThinking } from './apply-agent-thinking';
 import {
 	addSafeMcpTools,
@@ -242,6 +243,12 @@ export async function createInstanceAgent(
 		})
 		.tool(toolRegistryValues(runtimeTools))
 		.checkpoint(options.checkpointStore ?? 'memory');
+	// Adds a moving cache breakpoint on the last message, so each loop step reads
+	// the cached transcript instead of reprocessing it.
+	const promptCaching = resolveAIAPromptCaching(modelId);
+	if (promptCaching) {
+		agent.promptCaching(promptCaching);
+	}
 	if (mcpConnectionFailures.length > 0) {
 		agent.mcpConnectionFailures(mcpConnectionFailures);
 	}

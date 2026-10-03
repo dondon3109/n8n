@@ -12,6 +12,7 @@ const mockAgentInstances: Array<{
 	telemetry: Mock;
 	workspace: Mock;
 	thinking: Mock;
+	promptCaching: Mock;
 	mcpConnectionFailures: Mock;
 }> = [];
 
@@ -35,6 +36,7 @@ vi.mock('@n8n/agents', () => ({
 		this.telemetry = vi.fn().mockReturnThis();
 		this.workspace = vi.fn().mockReturnThis();
 		this.thinking = vi.fn().mockReturnThis();
+		this.promptCaching = vi.fn().mockReturnThis();
 		this.mcpConnectionFailures = vi.fn().mockReturnThis();
 		mockAgentInstances.push(this);
 	}),
@@ -210,6 +212,33 @@ describe('createInstanceAgent', () => {
 		});
 		expect(attachedTools['nodes-run-1']).toMatchObject({ name: 'nodes-run-1' });
 		expect(secondRunAttachedTools['nodes-run-2']).toMatchObject({ name: 'nodes-run-2' });
+	});
+
+	it('enables runtime prompt caching for Anthropic models', async () => {
+		await createInstanceAgent({
+			modelId: 'anthropic/claude-sonnet-4-6',
+			context: { runLabel: 'caching' },
+			orchestrationContext: { runId: 'caching' },
+			memoryConfig: {},
+			mcpManager: createMcpManagerStub(),
+		} as never);
+
+		expect(mockAgentInstances[0].promptCaching).toHaveBeenCalledWith({
+			enabled: true,
+			anthropic: { ttl: '5m' },
+		});
+	});
+
+	it('does not enable prompt caching for providers without support', async () => {
+		await createInstanceAgent({
+			modelId: 'google/gemini-2.5-pro',
+			context: { runLabel: 'no-caching' },
+			orchestrationContext: { runId: 'no-caching' },
+			memoryConfig: {},
+			mcpManager: createMcpManagerStub(),
+		} as never);
+
+		expect(mockAgentInstances[0].promptCaching).not.toHaveBeenCalled();
 	});
 
 	it('shares one domain context between domain and orchestration tools', async () => {

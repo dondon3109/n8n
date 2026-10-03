@@ -1,5 +1,6 @@
 import { Agent, type CheckpointStore, type RuntimeSkillSource, type Workspace } from '@n8n/agents';
 
+import { resolveAIAPromptCaching } from './aia-model-defaults';
 import {
 	SCOPE_GROUNDING_GUARDRAIL,
 	SECRET_ASK_GUARDRAIL,
@@ -105,6 +106,10 @@ export function createSubAgent(options: SubAgentOptions): Agent {
 		})
 		.tool(toolRegistryValues(tools))
 		.checkpoint(options.checkpointStore ?? 'memory');
+	const promptCaching = resolveAIAPromptCaching(modelId);
+	if (promptCaching) {
+		agent.promptCaching(promptCaching);
+	}
 	attachRuntimeWorkspaceCapabilities(agent, {
 		workspace: options.workspace,
 		runtimeSkills: options.runtimeSkills,
